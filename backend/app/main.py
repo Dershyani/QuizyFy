@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.endpoints import auth, documents
+from app.api.endpoints import auth, documents, quiz
 
 app = FastAPI(
     title="QuizyFy API",
@@ -19,6 +19,7 @@ app.add_middleware(
 # Routes
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(documents.router, prefix="/documents", tags=["Documents"])
+app.include_router(quiz.router, prefix="/quiz", tags=["Quiz"])
 
 @app.get("/")
 def root():
