@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.api.endpoints import auth, documents
 
 app = FastAPI(
     title="QuizyFy API",
@@ -7,16 +8,18 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Allow React frontend to talk to backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # React Vite default port
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ── TEST ROUTE ────────────────────────────────────
+# Routes
+app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+app.include_router(documents.router, prefix="/documents", tags=["Documents"])
+
 @app.get("/")
 def root():
     return {
