@@ -114,7 +114,11 @@ def get_current_user(token: str):
         if not user_id:
             return None
 
-        result = supabase.table("users")\
+        # Use fresh client to avoid disconnection
+        from app.core.database import get_fresh_client
+        fresh_client = get_fresh_client()
+        
+        result = fresh_client.table("users")\
             .select("*")\
             .eq("id", user_id)\
             .execute()
@@ -125,4 +129,7 @@ def get_current_user(token: str):
         return result.data[0]
 
     except JWTError:
+        return None
+    except Exception as e:
+        print(f"Auth error: {e}")
         return None

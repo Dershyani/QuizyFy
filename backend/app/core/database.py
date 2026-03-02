@@ -7,5 +7,12 @@ def get_supabase() -> Client:
         settings.SUPABASE_SERVICE_KEY
     )
 
-# Single instance to use everywhere
+def get_fresh_client() -> Client:
+    """Always create a fresh client to avoid disconnection issues"""
+    return create_client(
+        settings.SUPABASE_URL,
+        settings.SUPABASE_SERVICE_KEY
+    )
+
+# Single instance
 supabase: Client = get_supabase()

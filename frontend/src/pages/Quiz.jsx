@@ -9,10 +9,9 @@ export default function Quiz() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [attemptId, setAttemptId] = useState(null)
   const [selected, setSelected] = useState(null)
-  const [feedback, setFeedback] = useState(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [answers, setAnswers] = useState([])
+  const [answers, setAnswers] = useState({})
 
   useEffect(() => {
     loadQuiz()
@@ -32,50 +31,51 @@ export default function Quiz() {
   }
 
   const handleSelect = (option) => {
-    if (feedback) return // already answered
+    // Save selected answer for current question
     setSelected(option)
+    setAnswers({ ...answers, [currentIndex]: option })
   }
 
-  const handleSubmitAnswer = async () => {
-    if (!selected || submitting) return
+  const handleNext = async () => {
+    if (!selected && !answers[currentIndex]) return
     setSubmitting(true)
 
     try {
       const question = quiz.questions[currentIndex]
-      const res = await submitAnswer({
+      // Submit answer to backend (no feedback shown yet!)
+      await submitAnswer({
         quiz_attempt_id: attemptId,
         question_id: question.question_id,
-        selected_answer: selected
+        selected_answer: answers[currentIndex] || selected
       })
-      setFeedback(res.data)
-      setAnswers([...answers, res.data])
+
+      if (currentIndex + 1 >= quiz.questions.length) {
+        // Last question - finish quiz and go to results
+        await finishQuiz(attemptId)
+        navigate(`/results/${attemptId}`)
+      } else {
+        // Go to next question
+        setCurrentIndex(currentIndex + 1)
+        setSelected(answers[currentIndex + 1] || null)
+      }
     } catch (err) {
-      console.error('Error submitting answer:', err)
+      console.error('Error:', err)
     } finally {
       setSubmitting(false)
     }
   }
 
-  const handleNext = async () => {
-    if (currentIndex + 1 >= quiz.questions.length) {
-      // Last question - finish quiz
-      try {
-        await finishQuiz(attemptId)
-        navigate(`/results/${attemptId}`)
-      } catch (err) {
-        console.error('Error finishing quiz:', err)
-      }
-    } else {
-      setCurrentIndex(currentIndex + 1)
-      setSelected(null)
-      setFeedback(null)
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1)
+      setSelected(answers[currentIndex - 1] || null)
     }
   }
 
   if (loading) return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">
       <div className="text-white text-center">
-        <div className="text-4xl mb-4">🧠</div>
+        <div className="text-4xl mb-4 animate-bounce">🧠</div>
         <p className="text-gray-400">Loading quiz...</p>
       </div>
     </div>
@@ -95,16 +95,8 @@ export default function Quiz() {
     { key: 'D', text: question.option_d },
   ]
 
-  const getOptionStyle = (key) => {
-    if (!feedback) {
-      return selected === key
-        ? 'border-indigo-500 bg-indigo-900/30'
-        : 'border-gray-700 hover:border-gray-500'
-    }
-    if (key === feedback.correct_answer) return 'border-green-500 bg-green-900/20'
-    if (key === selected && !feedback.is_correct) return 'border-red-500 bg-red-900/20'
-    return 'border-gray-700 opacity-50'
-  }
+  const currentAnswer = answers[currentIndex] || selected
+  const progress = ((currentIndex + 1) / quiz.total_questions) * 100
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -112,79 +104,98 @@ export default function Quiz() {
       {/* Header */}
       <div className="border-b border-gray-800 px-8 py-4 flex items-center justify-between">
         <div className="text-indigo-400 font-bold text-lg">QuizyFy</div>
-        <div className="text-gray-400 text-sm">{quiz.title}</div>
+        <div className="text-gray-400 text-sm font-medium">{quiz.title}</div>
         <div className="text-gray-400 text-sm">
-          Question {currentIndex + 1} of {quiz.total_questions}
+          {currentIndex + 1} / {quiz.total_questions}
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="h-1 bg-gray-800">
+      <div className="h-1.5 bg-gray-800">
         <div
-          className="h-1 bg-indigo-500 transition-all"
-          style={{ width: `${((currentIndex + 1) / quiz.total_questions) * 100}%` }}
+          className="h-1.5 bg-indigo-500 transition-all duration-300"
+          style={{ width: `${progress}%` }}
         />
       </div>
 
       {/* Question */}
       <div className="max-w-2xl mx-auto px-6 py-10">
+
+        {/* Question number */}
         <div className="text-xs text-indigo-400 font-bold uppercase tracking-widest mb-4">
-          Question {currentIndex + 1}
+          Question {currentIndex + 1} of {quiz.total_questions}
         </div>
-        <h2 className="text-xl font-bold mb-8 leading-relaxed">
+
+        {/* Question text */}
+        <h2 className="text-xl font-bold mb-8 leading-relaxed text-white">
           {question.question_text}
         </h2>
 
-        {/* Options */}
-        <div className="space-y-3 mb-8">
+        {/* Options - no correct/wrong colors! */}
+        <div className="space-y-3 mb-10">
           {options.map((opt) => (
             <div
               key={opt.key}
               onClick={() => handleSelect(opt.key)}
-              className={`flex items-center gap-4 border-2 rounded-xl px-5 py-4 cursor-pointer transition ${getOptionStyle(opt.key)}`}
+              className={`flex items-center gap-4 border-2 rounded-xl px-5 py-4 cursor-pointer transition
+                ${currentAnswer === opt.key
+                  ? 'border-indigo-500 bg-indigo-900/30'
+                  : 'border-gray-700 hover:border-gray-500 hover:bg-gray-800/50'
+                }`}
             >
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm flex-shrink-0
-                ${selected === opt.key && !feedback ? 'bg-indigo-600' : 'bg-gray-800'}
-                ${feedback && opt.key === feedback.correct_answer ? 'bg-green-600' : ''}
-                ${feedback && opt.key === selected && !feedback?.is_correct ? 'bg-red-600' : ''}
-              `}>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm flex-shrink-0 transition
+                ${currentAnswer === opt.key
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-800 text-gray-400'
+                }`}
+              >
                 {opt.key}
               </div>
-              <span className="text-sm">{opt.text}</span>
+              <span className="text-sm text-gray-200">{opt.text}</span>
             </div>
           ))}
         </div>
 
-        {/* Feedback box */}
-        {feedback && (
-          <div className={`rounded-xl p-4 mb-6 border ${feedback.is_correct ? 'bg-green-900/20 border-green-700' : 'bg-red-900/20 border-red-700'}`}>
-            <div className="font-bold mb-1">
-              {feedback.is_correct ? '✅ Correct!' : '❌ Incorrect!'}
-            </div>
-            <div className="text-sm text-gray-300">
-              Correct answer: <span className="font-bold text-white">Option {feedback.correct_answer}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Buttons */}
-        <div className="flex justify-between">
-          {!feedback ? (
+        {/* Navigation buttons */}
+        <div className="flex gap-4">
+          {currentIndex > 0 && (
             <button
-              onClick={handleSubmitAnswer}
-              disabled={!selected || submitting}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 rounded-xl py-3 font-semibold transition"
+              onClick={handlePrevious}
+              className="px-6 py-3 border border-gray-700 hover:border-gray-500 rounded-xl font-medium transition text-sm"
             >
-              {submitting ? 'Checking...' : 'Submit Answer'}
-            </button>
-          ) : (
-            <button
-              onClick={handleNext}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 rounded-xl py-3 font-semibold transition"
-            >
-              {currentIndex + 1 >= quiz.total_questions ? 'Finish Quiz →' : 'Next Question →'}
+              ← Previous
             </button>
           )}
+          <button
+            onClick={handleNext}
+            disabled={!currentAnswer || submitting}
+            className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3 font-semibold transition"
+          >
+            {submitting
+              ? 'Saving...'
+              : currentIndex + 1 >= quiz.total_questions
+                ? 'Finish Quiz →'
+                : 'Next Question →'
+            }
+          </button>
+        </div>
+
+        {/* Answer indicators at bottom */}
+        <div className="flex gap-2 mt-8 flex-wrap justify-center">
+          {quiz.questions.map((_, i) => (
+            <div
+              key={i}
+              className={`w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center transition
+                ${i === currentIndex
+                  ? 'bg-indigo-600 text-white'
+                  : answers[i]
+                    ? 'bg-gray-600 text-white'
+                    : 'bg-gray-800 text-gray-500'
+                }`}
+            >
+              {i + 1}
+            </div>
+          ))}
         </div>
       </div>
     </div>
