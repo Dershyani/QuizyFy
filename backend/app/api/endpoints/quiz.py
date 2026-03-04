@@ -219,7 +219,8 @@ def get_feedback(
         question_text=question["question_text"],
         correct_answer=correct_letter,
         correct_option_text=correct_text,
-        document_id=document_id
+        document_id=document_id,
+        answer_attempt_id=answer_attempt_id
     )
 
     return {

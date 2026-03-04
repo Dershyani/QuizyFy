@@ -2,6 +2,7 @@ from groq import Groq
 from sentence_transformers import SentenceTransformer
 from app.core.config import settings
 from app.core.database import supabase
+import uuid
 
 client = Groq(api_key=settings.GROQ_API_KEY)
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
@@ -43,10 +44,6 @@ def extract_topic(question_text: str) -> str:
     """
     Use LLaMA 3 to extract main topic keywords from question
     This gives us a better search query for web search
-
-    Example:
-    Question: "What is the time complexity of binary search?"
-    Topic: "binary search time complexity"
     """
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
@@ -75,7 +72,6 @@ def search_web_resources(topic: str) -> list:
 
         results = []
 
-        # Force English results from trusted sites only
         with DDGS() as ddgs:
             search_results = list(ddgs.text(
                 f"{topic} tutorial",
@@ -84,7 +80,6 @@ def search_web_resources(topic: str) -> list:
                 max_results=5
             ))
 
-        # Filter to only trusted CS education websites
         trusted_domains = [
             "geeksforgeeks.org",
             "w3schools.com",
@@ -106,7 +101,6 @@ def search_web_resources(topic: str) -> list:
                     "description": r.get("body", "")[:120] + "..."
                 })
 
-        # If no trusted results found search GeeksforGeeks specifically
         if not results:
             with DDGS() as ddgs:
                 specific_results = list(ddgs.text(
@@ -132,6 +126,27 @@ def search_web_resources(topic: str) -> list:
                 "description": "Search GeeksforGeeks for more information on this topic"
             }
         ]
+
+def save_recommendations_to_db(answer_attempt_id: str, recommendations: list):
+    """
+    Save recommendations to answer_recommendations table
+    This matches the SRD class diagram exactly:
+    - recId (auto generated)
+    - answerAttemptId (Foreign Key)
+    - recommendedUrl
+    - title
+    """
+    try:
+        for rec in recommendations:
+            supabase.table("answer_recommendations").insert({
+                "id": str(uuid.uuid4()),
+                "answer_attempt_id": answer_attempt_id,
+                "url": rec["url"],
+                "title": rec["title"]
+            }).execute()
+        print(f"   Saved {len(recommendations)} recommendations to DB!")
+    except Exception as e:
+        print(f"   Could not save recommendations: {e}")
 
 def generate_explanation(
     question_text: str,
@@ -184,7 +199,8 @@ def generate_rag_feedback(
     question_text: str,
     correct_answer: str,
     correct_option_text: str,
-    document_id: str
+    document_id: str,
+    answer_attempt_id: str = None
 ) -> dict:
     """
     MAIN FUNCTION: Complete RAG + Recommendation pipeline
@@ -199,6 +215,9 @@ def generate_rag_feedback(
 
     Step 4: SEARCH web for relevant resources
             using DuckDuckGo (dynamic, not hardcoded!)
+
+    Step 5: SAVE recommendations to DB
+            matches SRD answer_recommendations table
     """
     try:
         # Step 1: Retrieve
@@ -230,6 +249,11 @@ def generate_rag_feedback(
         print("RAG Step 4: Searching web for resources...")
         recommendations = search_web_resources(topic)
         print(f"   Found {len(recommendations)} resources!")
+
+        # Step 5: Save to DB if answer_attempt_id provided
+        if answer_attempt_id and recommendations:
+            print("RAG Step 5: Saving recommendations to DB...")
+            save_recommendations_to_db(answer_attempt_id, recommendations)
 
         print("✅ RAG feedback complete!")
         return {
