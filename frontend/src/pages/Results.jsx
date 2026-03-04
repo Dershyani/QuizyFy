@@ -45,9 +45,9 @@ export default function Results() {
   }
 
   const getScoreMessage = (score) => {
-    if (score >= 80) return 'Excellent Work! 🎉'
-    if (score >= 60) return 'Good Job! Keep it up! 💪'
-    return 'Keep Practicing! 📚'
+    if (score >= 80) return 'Excellent Work!'
+    if (score >= 60) return 'Good Job! Keep it up!'
+    return 'Keep Practicing!'
   }
 
   if (loading) return (
@@ -89,17 +89,17 @@ export default function Results() {
           <div className="flex justify-center gap-8 mt-6">
             <div className="text-center">
               <div className="text-2xl font-bold text-green-400">{results.correct}</div>
-              <div className="text-xs text-gray-500 mt-1">Correct ✅</div>
+              <div className="text-xs text-gray-500 mt-1">Correct</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-red-400">
                 {results.total - results.correct}
               </div>
-              <div className="text-xs text-gray-500 mt-1">Wrong ❌</div>
+              <div className="text-xs text-gray-500 mt-1">Wrong</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-indigo-400">{results.total}</div>
-              <div className="text-xs text-gray-500 mt-1">Total 📝</div>
+              <div className="text-xs text-gray-500 mt-1">Total</div>
             </div>
           </div>
         </div>
@@ -154,18 +154,20 @@ export default function Results() {
                     className="mt-3 ml-8 text-xs bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-600/50 text-indigo-300 px-3 py-1.5 rounded-lg transition"
                   >
                     {loadingFeedback[i]
-                      ? '🧠 Generating explanation...'
-                      : '🧠 Get AI Explanation'
+                      ? 'Generating explanation...'
+                      : 'Get AI Explanation'
                     }
                   </button>
                 )}
               </div>
 
-              {/* RAG Explanation */}
+              {/* RAG Explanation + Recommendations */}
               {!answer.is_correct && feedbacks[i] && (
-                <div className="border-t border-red-800/50 bg-gray-900/50 p-4">
+                <div className="border-t border-red-800/50 bg-gray-900/50 p-4 space-y-4">
+                  
+                  {/* AI Explanation */}
                   <div className="flex items-start gap-2">
-                    <span className="text-lg">🧠</span>
+                    <span className="text-lg text-indigo-400">🧠</span>
                     <div>
                       <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">
                         AI Explanation (from your lecture notes)
@@ -175,6 +177,42 @@ export default function Results() {
                       </p>
                     </div>
                   </div>
+
+                  {/* Recommended Resources */}
+                  {feedbacks[i].recommendations?.length > 0 && (
+                    <div className="flex items-start gap-2">
+                      <span className="text-lg text-teal-400">🔗</span>
+                      <div className="flex-1">
+                        <div className="text-xs font-bold text-teal-400 uppercase tracking-wider mb-2">
+                          Recommended Resources
+                        </div>
+                        <div className="space-y-2">
+                          {feedbacks[i].recommendations.map((rec, j) => (
+                            <a
+                              key={j}
+                              href={rec.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-start gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg px-3 py-2 transition group"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm text-teal-400 group-hover:text-teal-300 font-medium truncate">
+                                  {rec.title}
+                                </p>
+                                {rec.description && (
+                                  <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+                                    {rec.description}
+                                  </p>
+                                )}
+                              </div>
+                              <span className="text-gray-500 text-xs mt-0.5 flex-shrink-0">↗</span>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               )}
             </div>
@@ -187,13 +225,13 @@ export default function Results() {
             onClick={() => navigate('/upload')}
             className="flex-1 bg-indigo-600 hover:bg-indigo-700 rounded-xl py-3 font-semibold transition"
           >
-            📤 Take Another Quiz
+            Take Another Quiz
           </button>
           <button
             onClick={() => navigate('/dashboard')}
             className="flex-1 border border-gray-700 hover:border-indigo-500 rounded-xl py-3 font-semibold transition"
           >
-            🏠 Dashboard
+            Dashboard
           </button>
         </div>
       </div>
