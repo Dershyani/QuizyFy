@@ -55,4 +55,7 @@ export const submitAnswer = (data) =>
 export const finishQuiz = (attemptId) =>
   api.post(`/quiz/finish/${attemptId}`)
 
+export const getDashboard = () =>
+  api.get('/quiz/progress/dashboard')
+
 export default api

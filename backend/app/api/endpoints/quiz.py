@@ -230,6 +230,44 @@ def get_feedback(
         "recommendations": result.get("recommendations", [])
     }
 
+@router.get("/progress/dashboard")
+def get_dashboard(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get basic student progress - quiz history and count"""
+    user = get_current_user(credentials.credentials)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    attempts = supabase.table("quiz_attempts")\
+        .select("*, quizzes(title, total_questions)")\
+        .eq("user_id", user["id"])\
+        .eq("status", "completed")\
+        .order("completed_at", desc=True)\
+        .execute()
+
+    if not attempts.data:
+        return {
+            "total_quizzes": 0,
+            "history": []
+        }
+
+    history = []
+    for a in attempts.data:
+        history.append({
+            "attempt_id": a["id"],
+            "quiz_id": a["quiz_id"],
+            "title": a["quizzes"]["title"] if a["quizzes"] else "Unknown",
+            "score": round(a["score"], 1),
+            "total_questions": a["total_questions"],
+            "completed_at": a["completed_at"]
+        })
+
+    return {
+        "total_quizzes": len(attempts.data),
+        "history": history
+    }
+
 # ⚠️ IMPORTANT: This MUST be last — generic route catches everything!
 @router.get("/{quiz_id}")
 def get_quiz(
