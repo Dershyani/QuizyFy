@@ -32,6 +32,10 @@ def create_access_token(data: dict) -> str:
 def register_user(name: str, student_id: str, email: str, password: str):
     """Register a new student"""
     try:
+        # Check if email is USM student email
+        if not email.endswith("@student.usm.my"):
+            return {"error": "Only USM students can register. Please use your @student.usm.my email address."}
+        
         # Check if email already exists
         existing = supabase.table("users")\
             .select("id")\

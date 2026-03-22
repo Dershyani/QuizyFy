@@ -80,7 +80,14 @@ export default function Upload() {
         {/* Error */}
         {error && (
           <div className="bg-red-900/40 border border-red-700 text-red-300 rounded-xl px-4 py-3 mb-6 text-sm">
-            {error}
+            <p className="font-semibold mb-1">Upload Failed</p>
+            <p>{error}</p>
+            {error.includes("Computer Science") && (
+              <p className="mt-2 text-red-400 text-xs">
+                QuizyFy only supports Computer Science lecture notes such as
+                Data Structures, Algorithms, Networks, AI, Databases, and more.
+              </p>
+            )}
           </div>
         )}
 

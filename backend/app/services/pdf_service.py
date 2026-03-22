@@ -33,6 +33,64 @@ def clean_text(text: str) -> str:
     lines = [line for line in lines if line]
     return "\n".join(lines)
 
+def verify_cs_content(text: str) -> dict:
+    """
+    Use LLaMA 3 to verify if PDF content is CS related
+    
+    WHY: QuizyFy is designed specifically for USM CS students
+    Only CS-related lecture notes should be processed
+    
+    HOW:
+    1. Take first 1000 chars of extracted text
+    2. Send to LLaMA 3 for classification
+    3. LLaMA 3 returns yes/no + reason
+    """
+    from groq import Groq
+    from app.core.config import settings
+    
+    client = Groq(api_key=settings.GROQ_API_KEY)
+    
+    # Use first 1000 chars as sample
+    sample = text[:1000]
+    
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {
+                "role": "system",
+                "content": """You are a content classifier for a Computer Science education system.
+Your job is to determine if a document is related to Computer Science.
+
+Computer Science topics include:
+- Programming, algorithms, data structures
+- Networks, operating systems, databases
+- AI, machine learning, software engineering
+- Web development, cybersecurity, IoT
+- Computer architecture, discrete math
+- Any CS university course content
+
+Respond with ONLY this JSON format, nothing else:
+{"is_cs": true, "reason": "brief reason"}
+or
+{"is_cs": false, "reason": "brief reason"}"""
+            },
+            {
+                "role": "user",
+                "content": f"Is this document Computer Science related?\n\n{sample}"
+            }
+        ],
+        temperature=0.1,
+        max_tokens=100
+    )
+    
+    import json
+    try:
+        result = json.loads(response.choices[0].message.content.strip())
+        return result
+    except:
+        # If parsing fails, allow it through
+        return {"is_cs": True, "reason": "Could not verify, allowing through"}
+
 def chunk_text(text: str) -> list:
     """
     Step 3: Split text into chunks using LangChain
@@ -75,15 +133,16 @@ def save_chunks_to_db(document_id: str, chunks: list, embeddings: list):
 def process_pdf(file_path: str, document_id: str) -> dict:
     """
     MAIN FUNCTION: Complete PDF processing pipeline
-    Runs all 5 steps in order:
-    1. Extract text (pdfplumber)
-    2. Clean text (NLP preprocessing)
-    3. Chunk text (LangChain token splitter)
-    4. Generate embeddings (SBERT all-MiniLM-L6-v2)
-    5. Save to Supabase pgvector
+    
+    Step 0: VERIFY CS content using LLaMA 3
+    Step 1: Extract text (pdfplumber)
+    Step 2: Clean text
+    Step 3: Chunk text (LangChain)
+    Step 4: Generate embeddings (SBERT)
+    Step 5: Save to Supabase pgvector
     """
     try:
-        # Step 1: Extract
+        # Step 1: Extract first
         print(f"Step 1: Extracting text from PDF...")
         raw_text = extract_text_from_pdf(file_path)
         
@@ -93,6 +152,17 @@ def process_pdf(file_path: str, document_id: str) -> dict:
         # Step 2: Clean
         print(f"Step 2: Cleaning text...")
         clean = clean_text(raw_text)
+        
+        # Step 0: Verify CS content AFTER extraction
+        print(f"Step 0: Verifying CS content with LLaMA 3...")
+        verification = verify_cs_content(clean)
+        print(f"   CS related: {verification['is_cs']}")
+        print(f"   Reason: {verification['reason']}")
+        
+        if not verification["is_cs"]:
+            return {
+                "error": f"This document does not appear to be Computer Science related. QuizyFy only supports CS lecture notes. ({verification['reason']})"
+            }
         
         # Step 3: Chunk
         print(f"Step 3: Chunking text...")
