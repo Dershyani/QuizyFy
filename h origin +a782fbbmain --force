@@ -1,0 +1,10 @@
+[33m887fb98[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m QuizyFy UI redesign - modern professional interface
+[33ma782fbb[m Progress dashboard + USM email validation + CS content verification
+[33m03684c1[m Progress dashboard done
+[33m56cffb6[m Recommendations saving to DB - matches SRD
+[33m187d454[m RAG feedback + recommendations working
+[33m984da53[m RAG explanation working - SBERT + pgvector + LLaMA 3
+[33m345039a[m Frontend pages done - quiz flow working
+[33m74a084f[m Quiz generation working - LLaMA 3 via Groq API
+[33m5b93060[m PDF upload pipeline working - chunks saved to Supabase
+[33m40030c3[m Initial QuizyFy setup - backend structure
