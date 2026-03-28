@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getDashboard } from '../services/api'
-import { BookOpen, Target, Clock, Upload } from 'lucide-react'
+import { 
+  BookOpen, Target, Clock, Upload, LogOut, 
+  Award, TrendingUp, Zap, ChevronRight, BarChart3 
+} from 'lucide-react'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -31,9 +34,15 @@ export default function Dashboard() {
   }
 
   const getScoreColor = (score) => {
-    if (score >= 80) return 'text-green-400'
-    if (score >= 60) return 'text-yellow-400'
-    return 'text-red-400'
+    if (score >= 80) return 'text-[#10B981]'
+    if (score >= 60) return 'text-[#F97316]'
+    return 'text-[#EF4444]'
+  }
+
+  const getScoreBg = (score) => {
+    if (score >= 80) return 'bg-[#10B981]/10'
+    if (score >= 60) return 'bg-[#F97316]/10'
+    return 'bg-[#EF4444]/10'
   }
 
   const formatDate = (dateStr) => {
@@ -44,101 +53,155 @@ export default function Dashboard() {
     })
   }
 
-  return (
-    <div className="min-h-screen bg-gray-950 text-white">
+  // Calculate stats
+  const totalQuizzes = data?.total_quizzes || 0
+  const averageScore = totalQuizzes > 0 
+    ? Math.round(data.history.reduce((sum, a) => sum + a.score, 0) / totalQuizzes)
+    : 0
+  const bestScore = totalQuizzes > 0 
+    ? Math.max(...data.history.map(a => a.score))
+    : 0
+  const totalQuestions = data?.history.reduce((sum, a) => sum + a.total_questions, 0) || 0
 
+  return (
+    <div className="min-h-screen bg-[#F3F4F6]">
+      
       {/* Navbar */}
-      <nav className="flex items-center justify-between px-8 py-4 border-b border-gray-800">
-        <div className="text-2xl font-bold text-indigo-400">QuizyFy</div>
-        <div className="flex items-center gap-4">
-          <span className="text-gray-400 text-sm">{studentId}</span>
-          <span className="text-white font-medium">{name}</span>
-          <button
-            onClick={logout}
-            className="px-4 py-2 text-red-400 hover:text-red-300 transition text-sm"
+      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-[#E5E7EB]">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div 
+            onClick={() => navigate('/dashboard')}
+            className="text-2xl font-extrabold text-[#1E3A8A] cursor-pointer tracking-tight"
           >
-            Logout
-          </button>
+            Quizy<span className="text-[#06B6D4]">Fy</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-[#F3F4F6] rounded-lg">
+              <BookOpen className="w-4 h-4 text-[#F97316]" />
+              <span className="text-[#6B7280] text-sm">{studentId}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[#111827] font-medium text-sm">{name}</span>
+              <button
+                onClick={logout}
+                className="p-2 hover:bg-red-50 rounded-lg transition text-[#6B7280] hover:text-red-500"
+                title="Logout"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
         </div>
       </nav>
 
-      <div className="max-w-4xl mx-auto px-8 py-10">
+      <div className="max-w-7xl mx-auto px-6 py-8">
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-extrabold mb-1">
-              Welcome back, {name?.split(' ')[0]}!
-            </h1>
-            <p className="text-gray-400 text-sm">
-              Here is your quiz activity so far
-            </p>
-          </div>
-          <button
-            onClick={() => navigate('/upload')}
-            className="flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-semibold transition text-sm"
-          >
-            <Upload className="w-4 h-4" />
-            New Quiz
-          </button>
+        {/* Welcome Section */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-[#111827]">
+            Welcome back, {name?.split(' ')[0]}.
+          </h1>
+          <p className="text-[#6B7280] mt-1">
+            Track your learning progress and continue where you left off.
+          </p>
         </div>
 
         {loading ? (
-          <div className="text-center py-20 text-gray-400 text-sm">
-            Loading...
+          <div className="flex items-center justify-center py-20">
+            <div className="w-8 h-8 border-2 border-[#F97316] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
           <>
-            {/* Total Quizzes Card */}
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6 flex items-center gap-4">
-              <div className="w-14 h-14 bg-indigo-600/20 border border-indigo-600/30 rounded-xl flex items-center justify-center">
-                <BookOpen className="w-6 h-6 text-indigo-400" />
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
+              <div className="bg-white border border-[#E5E7EB] rounded-xl p-5 hover:shadow-md transition">
+                <div className="flex items-center justify-between mb-3">
+                  <BookOpen className="w-5 h-5 text-[#F97316]" />
+                </div>
+                <p className="text-[#6B7280] text-sm mb-1">Total Attempts</p>
+                <p className="text-3xl font-bold text-[#111827]">{totalQuizzes}</p>
               </div>
-              <div>
-                <p className="text-gray-400 text-sm mb-0.5">Total Quizzes Taken</p>
-                <p className="text-4xl font-extrabold text-white">
-                  {data?.total_quizzes || 0}
-                </p>
+
+              <div className="bg-white border border-[#E5E7EB] rounded-xl p-5 hover:shadow-md transition">
+                <div className="flex items-center justify-between mb-3">
+                  <TrendingUp className="w-5 h-5 text-[#F97316]" />
+                </div>
+                <p className="text-[#6B7280] text-sm mb-1">Average Score</p>
+                <p className="text-3xl font-bold text-[#111827]">{averageScore}%</p>
+              </div>
+
+              <div className="bg-white border border-[#E5E7EB] rounded-xl p-5 hover:shadow-md transition">
+                <div className="flex items-center justify-between mb-3">
+                  <Award className="w-5 h-5 text-[#F97316]" />
+                </div>
+                <p className="text-[#6B7280] text-sm mb-1">Best Score</p>
+                <p className="text-3xl font-bold text-[#111827]">{bestScore}%</p>
+              </div>
+
+              <div className="bg-white border border-[#E5E7EB] rounded-xl p-5 hover:shadow-md transition">
+                <div className="flex items-center justify-between mb-3">
+                  <Zap className="w-5 h-5 text-[#F97316]" />
+                </div>
+                <p className="text-[#6B7280] text-sm mb-1">Questions Answered</p>
+                <p className="text-3xl font-bold text-[#111827]">{totalQuestions}</p>
               </div>
             </div>
 
+            {/* Action Button */}
+            <div className="mb-8">
+              <button
+                onClick={() => navigate('/upload')}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#F97316] to-[#FF8C42] text-white rounded-xl font-medium hover:shadow-lg transition shadow-md"
+              >
+                <Upload className="w-5 h-5" />
+                Upload New Notes
+              </button>
+            </div>
+
             {/* Quiz History */}
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-800">
-                <h3 className="font-bold">Quiz History</h3>
+            <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-[#F97316]" />
+                  <h3 className="font-semibold text-[#111827]">Quiz History</h3>
+                </div>
+                <span className="text-[#6B7280] text-sm">
+                  {totalQuizzes} attempts
+                </span>
               </div>
 
               {data?.history.length === 0 ? (
                 <div className="px-6 py-16 text-center">
-                  <BookOpen className="w-10 h-10 text-gray-700 mx-auto mb-3" />
-                  <p className="text-gray-500 text-sm mb-4">
-                    No quizzes taken yet
-                  </p>
+                  <BookOpen className="w-12 h-12 text-[#E5E7EB] mx-auto mb-4" />
+                  <p className="text-[#6B7280] mb-4">No quizzes taken yet</p>
                   <button
                     onClick={() => navigate('/upload')}
-                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 rounded-xl text-sm font-semibold transition"
+                    className="px-5 py-2.5 bg-gradient-to-r from-[#F97316] to-[#FF8C42] text-white rounded-lg text-sm font-medium hover:shadow-md transition"
                   >
-                    Take your first quiz
+                    Start your first quiz
                   </button>
                 </div>
               ) : (
-                <div className="divide-y divide-gray-800">
+                <div className="divide-y divide-[#E5E7EB]">
                   {data.history.map((attempt, i) => (
                     <div
                       key={i}
-                      className="px-6 py-4 flex items-center justify-between hover:bg-gray-800/30 transition"
+                      className="px-6 py-4 flex items-center justify-between hover:bg-[#F9FAFB] transition"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-gray-800 rounded-xl flex items-center justify-center">
-                          <Target className="w-4 h-4 text-gray-400" />
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-sm ${getScoreBg(attempt.score)}`}>
+                          <span className={getScoreColor(attempt.score)}>
+                            {attempt.score}%
+                          </span>
                         </div>
                         <div>
-                          <p className="font-medium text-sm">{attempt.title}</p>
-                          <div className="flex items-center gap-3 mt-0.5">
-                            <span className="text-xs text-gray-500">
+                          <p className="font-medium text-[#111827]">{attempt.title}</p>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-[#6B7280] text-xs flex items-center gap-1">
+                              <Target className="w-3 h-3" />
                               {attempt.total_questions} questions
                             </span>
-                            <span className="text-xs text-gray-500 flex items-center gap-1">
+                            <span className="text-[#6B7280] text-xs flex items-center gap-1">
                               <Clock className="w-3 h-3" />
                               {formatDate(attempt.completed_at)}
                             </span>
@@ -146,17 +209,13 @@ export default function Dashboard() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        <span className={`text-lg font-extrabold ${getScoreColor(attempt.score)}`}>
-                          {attempt.score}%
-                        </span>
-                        <button
-                          onClick={() => navigate(`/results/${attempt.attempt_id}`)}
-                          className="px-3 py-1.5 text-xs border border-gray-700 hover:border-indigo-500 text-gray-400 hover:text-white rounded-lg transition"
-                        >
-                          View Results
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => navigate(`/results/${attempt.attempt_id}`)}
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm text-[#6B7280] hover:text-[#F97316] border border-[#E5E7EB] hover:border-[#F97316] rounded-lg transition"
+                      >
+                        Review
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
                     </div>
                   ))}
                 </div>
