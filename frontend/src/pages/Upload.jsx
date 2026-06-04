@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { uploadPDF, generateQuiz } from '../services/api'
-import { Upload as UploadIcon, FileText, Brain, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
+import StudentLayout from '../components/StudentLayout'
+import { Upload as UploadIcon, FileText, Brain, ArrowRight, Loader2 } from 'lucide-react'
 
 export default function Upload() {
   const navigate = useNavigate()
@@ -56,27 +57,7 @@ export default function Upload() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F3F4F6]">
-
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-[#E5E7EB]">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div
-            onClick={() => navigate('/dashboard')}
-            className="text-2xl font-extrabold text-[#1E3A8A] cursor-pointer tracking-tight"
-          >
-            Quizy<span className="text-[#06B6D4]">Fy</span>
-          </div>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-1.5 text-sm text-[#6B7280] hover:text-[#1E3A8A] transition"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
-          </button>
-        </div>
-      </nav>
-
+    <StudentLayout>
       <div className="max-w-xl mx-auto px-6 py-12">
         
         {/* Header */}
@@ -204,6 +185,6 @@ export default function Upload() {
           </div>
         )}
       </div>
-    </div>
+    </StudentLayout>
   )
 }

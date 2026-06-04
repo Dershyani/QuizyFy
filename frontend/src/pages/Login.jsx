@@ -20,9 +20,13 @@ export default function Login() {
       localStorage.setItem('role', res.data.role)
       localStorage.setItem('name', res.data.name)
       localStorage.setItem('student_id', res.data.student_id)
-      navigate('/dashboard')
+      if (res.data.role === 'admin') {
+        navigate('/admin')
+      } else {
+        navigate('/dashboard')
+      }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Invalid email or password')
+      setError(err.response?.data?.detail || 'Login Failed')
     } finally {
       setLoading(false)
     }

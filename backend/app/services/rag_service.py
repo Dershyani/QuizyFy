@@ -77,7 +77,7 @@ def search_web_resources(topic: str) -> list:
                 f"{topic} tutorial",
                 region="us-en",
                 safesearch="on",
-                max_results=5
+                max_results=10
             ))
 
         trusted_domains = [
@@ -89,7 +89,11 @@ def search_web_resources(topic: str) -> list:
             "freecodecamp.org",
             "developer.mozilla.org",
             "docs.python.org",
-            "wikipedia.org"
+            "wikipedia.org",
+            "medium.com",
+            "stackoverflow.com",
+            "youtube.com",
+            "towardsdatascience.com"
         ]
 
         for r in search_results:
@@ -121,9 +125,9 @@ def search_web_resources(topic: str) -> list:
         print(f"Search error: {e}")
         return [
             {
-                "title": f"GeeksforGeeks: {topic}",
-                "url": f"https://www.geeksforgeeks.org/search/?q={topic.replace(' ', '+')}",
-                "description": "Search GeeksforGeeks for more information on this topic"
+                "title": f"Search Results: {topic}",
+                "url": f"https://www.google.com/search?q=site:geeksforgeeks.org+{topic.replace(' ', '+')}",
+                "description": "Click here to search for reliable tutorials on this topic."
             }
         ]
 
@@ -217,7 +221,7 @@ def generate_rag_feedback(
             using DuckDuckGo (dynamic, not hardcoded!)
 
     Step 5: SAVE recommendations to DB
-            matches SRD answer_recommendations table
+            matches answer_recommendations table
     """
     try:
         # Step 1: Retrieve

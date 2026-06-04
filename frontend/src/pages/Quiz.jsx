@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getQuiz, startQuiz, submitAnswer, finishQuiz } from '../services/api'
+import StudentLayout from '../components/StudentLayout'
 import { ArrowLeft, ArrowRight, Loader2, CheckCircle2, Circle, Brain } from 'lucide-react'
 
 export default function Quiz() {
@@ -70,18 +71,22 @@ export default function Quiz() {
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-[#F3F4F6] flex items-center justify-center">
-      <div className="text-center">
-        <Brain className="w-12 h-12 text-[#F97316] animate-pulse mx-auto mb-4" />
-        <p className="text-[#6B7280]">Loading quiz...</p>
+    <StudentLayout>
+      <div className="min-h-screen bg-[#F3F4F6] flex items-center justify-center">
+        <div className="text-center">
+          <Brain className="w-12 h-12 text-[#F97316] animate-pulse mx-auto mb-4" />
+          <p className="text-[#6B7280]">Loading quiz...</p>
+        </div>
       </div>
-    </div>
+    </StudentLayout>
   )
 
   if (!quiz) return (
-    <div className="min-h-screen bg-[#F3F4F6] flex items-center justify-center">
-      <p className="text-red-500">Quiz not found!</p>
-    </div>
+    <StudentLayout>
+      <div className="min-h-screen bg-[#F3F4F6] flex items-center justify-center">
+        <p className="text-red-500">Quiz not found!</p>
+      </div>
+    </StudentLayout>
   )
 
   const question = quiz.questions[currentIndex]
@@ -96,7 +101,8 @@ export default function Quiz() {
   const progress = ((currentIndex + 1) / quiz.total_questions) * 100
 
   return (
-    <div className="min-h-screen bg-[#F3F4F6]">
+    <StudentLayout>
+      <div className="min-h-screen bg-[#F3F4F6]">
 
       {/* Header */}
       <div className="bg-white border-b border-[#E5E7EB] px-6 py-4 sticky top-0 z-10">
@@ -220,6 +226,7 @@ export default function Quiz() {
           ))}
         </div>
       </div>
-    </div>
+      </div>
+    </StudentLayout>
   )
 }

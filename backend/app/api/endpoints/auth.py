@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException, Header, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
-from app.models.schemas import UserRegister, UserLogin
+from app.models.schemas import UserRegister, UserLogin, UpdateName
 from app.services.auth_service import register_user, login_user, get_current_user
+from app.core.database import supabase
 
 router = APIRouter()
 security = HTTPBearer()
@@ -53,3 +54,20 @@ def get_me(credentials: HTTPAuthorizationCredentials = Depends(security)):
         "student_id": user["student_id"],
         "role": user["role"]
     }
+
+@router.patch("/me")
+def update_name(body: UpdateName, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Update the current user's display name"""
+    token = credentials.credentials
+    user = get_current_user(token)
+
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Name cannot be empty")
+
+    supabase.table("users").update({"name": name}).eq("id", user["id"]).execute()
+
+    return {"message": "Name updated successfully", "name": name}

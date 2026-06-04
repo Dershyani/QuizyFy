@@ -6,6 +6,9 @@ from app.services.quiz_service import generate_quiz, get_quiz_by_id
 from app.services.rag_service import generate_rag_feedback
 from app.core.database import supabase
 import uuid
+import re
+from collections import Counter
+from datetime import datetime, timedelta
 
 router = APIRouter()
 security = HTTPBearer()
@@ -143,6 +146,7 @@ def get_results(
     score = round((correct / total * 100), 1) if total > 0 else 0
     return {
         "quiz_attempt_id": quiz_attempt_id,
+        "quiz_id": attempt_data["quiz_id"],
         "title": quiz.data[0]["title"] if quiz.data else "Quiz",
         "score": score,
         "correct": correct,
@@ -281,3 +285,116 @@ def get_quiz(
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
     return result
+
+@router.get("/admin/overview")
+def get_admin_overview(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Admin dashboard - system overview"""
+    user = get_current_user(credentials.credentials)
+    if not user or user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin access only")
+
+    # Total students
+    students = supabase.table("users")\
+        .select("id")\
+        .eq("role", "student")\
+        .execute()
+
+    # Total documents
+    documents = supabase.table("documents")\
+        .select("id")\
+        .execute()
+
+    # Total quizzes
+    quizzes = supabase.table("quizzes")\
+        .select("id")\
+        .execute()
+
+    # Total attempts
+    attempts = supabase.table("quiz_attempts")\
+        .select("id, score, completed_at")\
+        .eq("status", "completed")\
+        .execute()
+
+    # Average score
+    scores = [a["score"] for a in attempts.data]
+    avg_score = round(sum(scores) / len(scores), 1) if scores else 0
+
+    # Recent students
+    recent_students = supabase.table("users")\
+        .select("name, student_id, email, created_at")\
+        .eq("role", "student")\
+        .order("created_at", desc=True)\
+        .limit(10)\
+        .execute()
+
+    # Recent quiz attempts
+    recent_attempts = supabase.table("quiz_attempts")\
+        .select("*, users(name, student_id), quizzes(title)")\
+        .eq("status", "completed")\
+        .order("completed_at", desc=True)\
+        .limit(10)\
+        .execute()
+
+    # Weak topics based on recommendation titles
+    recommendations_res = supabase.table("answer_recommendations").select("title").execute()
+    cleaned_topics = []
+    for r in recommendations_res.data:
+        title = r.get("title", "")
+        # Remove common prefixes/suffixes
+        cleaned = re.sub(r'(GeeksforGeeks:\s*|\s*-\s*GeeksforGeeks|Tutorial|What is |Top \d+\s*)', '', title, flags=re.IGNORECASE).strip()
+        if cleaned:
+            cleaned_topics.append(cleaned)
+    
+    topic_counts = Counter(cleaned_topics).most_common(7)
+    weak_topics = [{"topic": t[0], "count": t[1]} for t in topic_counts]
+
+    # System Usage over time (last 7 days in MYT UTC+8)
+    usage_counts = Counter()
+    for a in attempts.data:
+        date_str = a.get("completed_at")
+        if date_str:
+            try:
+                # Remove Z for python < 3.11 fromisoformat compatibility
+                if date_str.endswith('Z'):
+                    date_str = date_str[:-1]
+                # completed_at from supabase is usually naive UTC or has +00:00
+                dt_utc = datetime.fromisoformat(date_str.split('+')[0])
+                # Convert to MYT
+                dt_my = dt_utc + timedelta(hours=8)
+                day = dt_my.strftime("%Y-%m-%d")
+                usage_counts[day] += 1
+            except Exception:
+                day = date_str.split("T")[0]
+                usage_counts[day] += 1
+            
+    system_usage = []
+    # Current time in MYT
+    today_my = datetime.utcnow() + timedelta(hours=8)
+    for i in range(6, -1, -1):
+        d = (today_my - timedelta(days=i)).strftime("%Y-%m-%d")
+        system_usage.append({"date": d[-5:], "count": usage_counts.get(d, 0)})
+
+    return {
+        "stats": {
+            "total_students": len(students.data),
+            "total_documents": len(documents.data),
+            "total_quizzes": len(quizzes.data),
+            "total_attempts": len(attempts.data),
+            "average_score": avg_score
+        },
+        "recent_students": recent_students.data,
+        "recent_attempts": [
+            {
+                "student_name": a["users"]["name"] if a["users"] else "Unknown",
+                "student_id": a["users"]["student_id"] if a["users"] else "Unknown",
+                "quiz_title": a["quizzes"]["title"] if a["quizzes"] else "Unknown",
+                "score": round(a["score"], 1),
+                "completed_at": a["completed_at"]
+            }
+            for a in recent_attempts.data
+        ],
+        "weak_topics": weak_topics,
+        "system_usage": system_usage
+    }

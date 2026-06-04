@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getDashboard } from '../services/api'
-import { 
-  BookOpen, Target, Clock, Upload, LogOut, 
-  Award, TrendingUp, Zap, ChevronRight, BarChart3 
+import StudentLayout from '../components/StudentLayout'
+import {
+  BookOpen, Target, Clock, Upload,
+  Award, TrendingUp, Zap, ChevronRight, BarChart3
 } from 'lucide-react'
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+} from 'recharts'
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const name = localStorage.getItem('name')
-  const studentId = localStorage.getItem('student_id')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -28,11 +31,6 @@ export default function Dashboard() {
     }
   }
 
-  const logout = () => {
-    localStorage.clear()
-    navigate('/login')
-  }
-
   const getScoreColor = (score) => {
     if (score >= 80) return 'text-[#10B981]'
     if (score >= 60) return 'text-[#F97316]'
@@ -46,7 +44,10 @@ export default function Dashboard() {
   }
 
   const formatDate = (dateStr) => {
-    return new Date(dateStr).toLocaleDateString('en-MY', {
+    if (!dateStr) return 'N/A'
+    // Ensure UTC if no timezone is provided by Supabase
+    const parsedDateStr = dateStr.includes('Z') || dateStr.includes('+') ? dateStr : `${dateStr}Z`
+    return new Date(parsedDateStr).toLocaleDateString('en-MY', {
       day: 'numeric',
       month: 'short',
       year: 'numeric'
@@ -63,37 +64,30 @@ export default function Dashboard() {
     : 0
   const totalQuestions = data?.history.reduce((sum, a) => sum + a.total_questions, 0) || 0
 
-  return (
-    <div className="min-h-screen bg-[#F3F4F6]">
-      
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-[#E5E7EB]">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div 
-            onClick={() => navigate('/dashboard')}
-            className="text-2xl font-extrabold text-[#1E3A8A] cursor-pointer tracking-tight"
-          >
-            Quizy<span className="text-[#06B6D4]">Fy</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-[#F3F4F6] rounded-lg">
-              <BookOpen className="w-4 h-4 text-[#F97316]" />
-              <span className="text-[#6B7280] text-sm">{studentId}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[#111827] font-medium text-sm">{name}</span>
-              <button
-                onClick={logout}
-                className="p-2 hover:bg-red-50 rounded-lg transition text-[#6B7280] hover:text-red-500"
-                title="Logout"
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+  // Prepare chart data (reverse history to show chronological order)
+  const chartData = data?.history ? [...data.history].reverse().map((attempt, index) => ({
+    name: `Quiz ${index + 1}`,
+    score: attempt.score,
+    date: formatDate(attempt.completed_at),
+    title: attempt.title
+  })) : []
 
+  // Custom tooltip for chart
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white border border-[#E5E7EB] p-3 rounded-xl shadow-lg">
+          <p className="font-semibold text-[#111827] text-sm mb-1">{payload[0].payload.title}</p>
+          <p className="text-[#6B7280] text-xs mb-2">{payload[0].payload.date}</p>
+          <p className="text-[#F97316] font-bold">Score: {payload[0].value}%</p>
+        </div>
+      )
+    }
+    return null
+  }
+
+  return (
+    <StudentLayout>
       <div className="max-w-7xl mx-auto px-6 py-8">
 
         {/* Welcome Section */}
@@ -157,6 +151,49 @@ export default function Dashboard() {
                 Upload New Notes
               </button>
             </div>
+
+            {/* Performance Trend Chart */}
+            {chartData.length > 0 && (
+              <div className="bg-white border border-[#E5E7EB] rounded-xl p-6 mb-8 shadow-sm hover:shadow-md transition">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-[#F97316]" />
+                    <h3 className="font-semibold text-[#111827]">Performance Trend</h3>
+                  </div>
+                </div>
+                <div className="h-[300px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                      <XAxis 
+                        dataKey="name" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fill: '#6B7280', fontSize: 12 }} 
+                        dy={10}
+                      />
+                      <YAxis 
+                        domain={[0, 100]} 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fill: '#6B7280', fontSize: 12 }}
+                        dx={-10}
+                      />
+                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#F3F4F6', strokeWidth: 2 }} />
+                      <Line 
+                        type="monotone" 
+                        dataKey="score" 
+                        stroke="#F97316" 
+                        strokeWidth={3}
+                        dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#F97316' }}
+                        activeDot={{ r: 6, strokeWidth: 0, fill: '#F97316' }}
+                        animationDuration={1500}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
 
             {/* Quiz History */}
             <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
@@ -224,6 +261,6 @@ export default function Dashboard() {
           </>
         )}
       </div>
-    </div>
+    </StudentLayout>
   )
 }

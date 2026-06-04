@@ -6,13 +6,25 @@ import Dashboard from './pages/Dashboard'
 import Upload from './pages/Upload'
 import Quiz from './pages/Quiz'
 import Results from './pages/Results'
+import AdminDashboard from './pages/AdminDashboard'
+import AdminProfile from './pages/AdminProfile'
+import Profile from './pages/Profile'
 
-// Protected route - only logged in users can access
+// Protected route for students
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem('token')
-  if (!token) {
-    return <Navigate to="/login" />
-  }
+  const role = localStorage.getItem('role')
+  if (!token) return <Navigate to="/login" />
+  if (role === 'admin') return <Navigate to="/admin" />
+  return children
+}
+
+// Protected route for admin only
+function AdminRoute({ children }) {
+  const token = localStorage.getItem('token')
+  const role = localStorage.getItem('role')
+  if (!token) return <Navigate to="/login" />
+  if (role !== 'admin') return <Navigate to="/dashboard" />
   return children
 }
 
@@ -34,6 +46,15 @@ function App() {
         } />
         <Route path="/results/:attemptId" element={
           <ProtectedRoute><Results /></ProtectedRoute>
+        } />
+        <Route path="/admin" element={
+          <AdminRoute><AdminDashboard /></AdminRoute>
+        } />
+        <Route path="/admin/profile" element={
+          <AdminRoute><AdminProfile /></AdminRoute>
+        } />
+        <Route path="/profile" element={
+          <ProtectedRoute><Profile /></ProtectedRoute>
         } />
       </Routes>
     </BrowserRouter>

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
-import { 
-  Brain, Link, CheckCircle, XCircle, Target, ExternalLink, 
-  ArrowLeft, Loader2, Sparkles, BookOpen, TrendingUp 
+import StudentLayout from '../components/StudentLayout'
+import {
+  Brain, Link, CheckCircle, XCircle, Target, ExternalLink,
+  ArrowLeft, Loader2, Sparkles, BookOpen, TrendingUp, RefreshCw
 } from 'lucide-react'
 
 export default function Results() {
@@ -61,38 +62,26 @@ export default function Results() {
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-[#F3F4F6] flex items-center justify-center">
-      <div className="text-center">
-        <Loader2 className="w-10 h-10 text-[#F97316] animate-spin mx-auto mb-4" />
-        <p className="text-[#6B7280]">Loading your results...</p>
+    <StudentLayout>
+      <div className="min-h-screen bg-[#F3F4F6] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 text-[#F97316] animate-spin mx-auto mb-4" />
+          <p className="text-[#6B7280]">Loading your results...</p>
+        </div>
       </div>
-    </div>
+    </StudentLayout>
   )
 
   if (!results) return (
-    <div className="min-h-screen bg-[#F3F4F6] flex items-center justify-center">
-      <p className="text-red-500">Results not found!</p>
-    </div>
+    <StudentLayout>
+      <div className="min-h-screen bg-[#F3F4F6] flex items-center justify-center">
+        <p className="text-red-500">Results not found!</p>
+      </div>
+    </StudentLayout>
   )
 
   return (
-    <div className="min-h-screen bg-[#F3F4F6]">
-
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-[#E5E7EB]">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div 
-            onClick={() => navigate('/dashboard')}
-            className="text-2xl font-extrabold text-[#1E3A8A] cursor-pointer tracking-tight"
-          >
-            Quizy<span className="text-[#06B6D4]">Fy</span>
-          </div>
-          <div className="text-sm text-[#6B7280] truncate max-w-[200px]">
-            {results.title}
-          </div>
-        </div>
-      </nav>
-
+    <StudentLayout>
       <div className="max-w-3xl mx-auto px-6 py-8">
 
         {/* Score Card */}
@@ -222,7 +211,7 @@ export default function Results() {
                           {feedbacks[i].recommendations.map((rec, j) => (
                             <a
                               key={j}
-                              href={rec.url}
+                              href={rec.url?.startsWith('http') ? rec.url : `https://${rec.url}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="flex items-center justify-between gap-2 bg-white border border-[#E5E7EB] hover:border-[#06B6D4] rounded-lg px-3 py-2 transition group"
@@ -253,11 +242,20 @@ export default function Results() {
 
         {/* Buttons */}
         <div className="flex gap-3">
+          {results.quiz_id && (
+            <button
+              onClick={() => navigate(`/quiz/${results.quiz_id}`)}
+              className="flex-1 bg-gradient-to-r from-[#F97316] to-[#FF8C42] text-white rounded-xl py-3 font-semibold hover:shadow-lg transition shadow-md flex items-center justify-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Retake Quiz
+            </button>
+          )}
           <button
             onClick={() => navigate('/upload')}
-            className="flex-1 bg-gradient-to-r from-[#F97316] to-[#FF8C42] text-white rounded-xl py-3 font-semibold hover:shadow-lg transition shadow-md"
+            className="flex-1 border border-[#E5E7EB] bg-white text-[#6B7280] hover:text-[#F97316] hover:border-[#F97316] rounded-xl py-3 font-semibold transition"
           >
-            Take Another Quiz
+            New Quiz
           </button>
           <button
             onClick={() => navigate('/dashboard')}
@@ -267,6 +265,6 @@ export default function Results() {
           </button>
         </div>
       </div>
-    </div>
+    </StudentLayout>
   )
 }

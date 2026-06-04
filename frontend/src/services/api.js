@@ -30,6 +30,9 @@ export const loginUser = (data) =>
 export const getMe = () =>
   api.get('/auth/me')
 
+export const updateName = (data) =>
+  api.patch('/auth/me', data)
+
 // ── DOCUMENTS ─────────────────────────────────────
 export const uploadPDF = (formData) =>
   api.post('/documents/upload', formData, {
@@ -57,5 +60,9 @@ export const finishQuiz = (attemptId) =>
 
 export const getDashboard = () =>
   api.get('/quiz/progress/dashboard')
+
+// ── ADMIN ─────────────────────────────────────────
+export const getAdminOverview = () =>
+  api.get('/quiz/admin/overview')
 
 export default api
