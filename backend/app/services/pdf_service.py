@@ -59,20 +59,20 @@ def verify_cs_content(text: str) -> dict:
             {
                 "role": "system",
                 "content": """You are a content classifier for a Computer Science education system.
-Your job is to determine if a document is related to Computer Science.
+                Your job is to determine if a document is related to Computer Science.
 
-Computer Science topics include:
-- Programming, algorithms, data structures
-- Networks, operating systems, databases
-- AI, machine learning, software engineering
-- Web development, cybersecurity, IoT
-- Computer architecture, discrete math
-- Any CS university course content
+                Computer Science topics include:
+                - Programming, algorithms, data structures
+                - Networks, operating systems, databases
+                - AI, machine learning, software engineering
+                - Web development, cybersecurity, IoT
+                - Computer architecture, discrete math
+                - Any CS university course content
 
-Respond with ONLY this JSON format, nothing else:
-{"is_cs": true, "reason": "brief reason"}
-or
-{"is_cs": false, "reason": "brief reason"}"""
+                Respond with ONLY this JSON format, nothing else:
+                {"is_cs": true, "reason": "brief reason"}
+                or
+                {"is_cs": false, "reason": "brief reason"}"""
             },
             {
                 "role": "user",

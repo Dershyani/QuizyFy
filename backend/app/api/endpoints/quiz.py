@@ -297,18 +297,21 @@ def get_admin_overview(
 
     # Total students
     students = supabase.table("users")\
-        .select("id")\
+        .select("id", count="exact")\
         .eq("role", "student")\
+        .limit(1)\
         .execute()
 
     # Total documents
     documents = supabase.table("documents")\
-        .select("id")\
+        .select("id", count="exact")\
+        .limit(1)\
         .execute()
 
     # Total quizzes
     quizzes = supabase.table("quizzes")\
-        .select("id")\
+        .select("id", count="exact")\
+        .limit(1)\
         .execute()
 
     # Total attempts
@@ -342,10 +345,36 @@ def get_admin_overview(
     cleaned_topics = []
     for r in recommendations_res.data:
         title = r.get("title", "")
-        # Remove common prefixes/suffixes
-        cleaned = re.sub(r'(GeeksforGeeks:\s*|\s*-\s*GeeksforGeeks|Tutorial|What is |Top \d+\s*)', '', title, flags=re.IGNORECASE).strip()
-        if cleaned:
-            cleaned_topics.append(cleaned)
+        if not title:
+            continue
+            
+        # 1. Split by common separators (- : |) and take the first part
+        # This naturally removes things like "- Wikipedia" or "- Online Course"
+        parts = re.split(r'[-:|]', title)
+        base_topic = parts[0].strip()
+        
+        # 2. Remove common tutorial prefixes
+        base_topic = re.sub(r'^(GeeksforGeeks\s*|Tutorial\s*|What is\s*|Top \d+\s*)', '', base_topic, flags=re.IGNORECASE).strip()
+        
+        # 3. Add spaces to combined words (like RiskManagement -> Risk Management)
+        # Protect IoT from being split by the camelCase regex
+        base_topic = base_topic.replace("IoT", "@@IOT@@")
+        base_topic = re.sub(r'([a-z])([A-Z])', r'\1 \2', base_topic)
+        base_topic = base_topic.replace("@@IOT@@", "IoT")
+        
+        # 4. Limit length so it doesn't break UI
+        if len(base_topic) > 45:
+            base_topic = base_topic[:42] + "..."
+            
+        if base_topic:
+            # Format nicely
+            base_topic = base_topic.title()
+            base_topic = base_topic.replace("Iot", "IoT")
+            base_topic = base_topic.replace("Io T", "IoT")
+            base_topic = base_topic.replace("Mqtt", "MQTT")
+            base_topic = base_topic.replace(" Cyber Security", " Cybersecurity")
+            
+            cleaned_topics.append(base_topic)
     
     topic_counts = Counter(cleaned_topics).most_common(7)
     weak_topics = [{"topic": t[0], "count": t[1]} for t in topic_counts]
@@ -378,9 +407,9 @@ def get_admin_overview(
 
     return {
         "stats": {
-            "total_students": len(students.data),
-            "total_documents": len(documents.data),
-            "total_quizzes": len(quizzes.data),
+            "total_students": students.count if students.count is not None else 0,
+            "total_documents": documents.count if documents.count is not None else 0,
+            "total_quizzes": quizzes.count if quizzes.count is not None else 0,
             "total_attempts": len(attempts.data),
             "average_score": avg_score
         },

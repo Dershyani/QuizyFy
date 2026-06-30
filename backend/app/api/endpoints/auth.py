@@ -42,11 +42,17 @@ def login(user: UserLogin):
 def get_me(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Get current logged in user details"""
     token = credentials.credentials
-    user = get_current_user(token)
+    base_user = get_current_user(token)
     
-    if not user:
+    if not base_user:
         raise HTTPException(status_code=401, detail="Invalid token")
-    
+        
+    # Fetch full up-to-date details from database
+    result = supabase.table("users").select("*").eq("id", base_user["id"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    user = result.data[0]
     return {
         "id": user["id"],
         "name": user["name"],

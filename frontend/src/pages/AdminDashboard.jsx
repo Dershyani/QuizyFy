@@ -372,7 +372,7 @@ export default function AdminDashboard() {
 
             {/* Additional Stats Section - Optional */}
             {activeTab === 'overview' && data?.stats && (
-              <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="mt-8 grid grid-cols-1 gap-6">
                 <div className="bg-white border border-[#E5E7EB] rounded-xl p-6">
                   <div className="flex items-center gap-2 mb-4">
                     <Award className="w-5 h-5 text-[#F97316]" />
@@ -399,33 +399,6 @@ export default function AdminDashboard() {
                           : 0}%
                       </span>
                     </div>
-                  </div>
-                </div>
-
-                <div className="bg-white border border-[#E5E7EB] rounded-xl p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <BarChart3 className="w-5 h-5 text-[#F97316]" />
-                    <h3 className="font-semibold text-[#111827]">Quick Actions</h3>
-                  </div>
-                  <div className="space-y-2">
-                    <button 
-                      onClick={() => navigate('/admin/students')}
-                      className="w-full text-left px-4 py-2 text-sm text-[#6B7280] hover:bg-[#F9FAFB] rounded-lg transition"
-                    >
-                      View all students →
-                    </button>
-                    <button 
-                      onClick={() => navigate('/admin/quizzes')}
-                      className="w-full text-left px-4 py-2 text-sm text-[#6B7280] hover:bg-[#F9FAFB] rounded-lg transition"
-                    >
-                      View all quizzes →
-                    </button>
-                    <button 
-                      onClick={() => navigate('/admin/analytics')}
-                      className="w-full text-left px-4 py-2 text-sm text-[#6B7280] hover:bg-[#F9FAFB] rounded-lg transition"
-                    >
-                      View detailed analytics →
-                    </button>
                   </div>
                 </div>
               </div>

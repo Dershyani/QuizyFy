@@ -62,74 +62,95 @@ def extract_topic(question_text: str) -> str:
     )
     return response.choices[0].message.content.strip()
 
-def search_web_resources(topic: str) -> list:
+def search_web_resources(topic: str, question_text: str = "") -> list:
     """
-    Search for relevant learning resources using DuckDuckGo
-    Forced to English, trusted CS education sites only
+    Search for relevant learning resources.
+    Always guarantees at least 2 relevant links even if DuckDuckGo fails.
     """
+    # Blocklist: sites unrelated to CS education
+    blocked_domains = [
+        "dictionary.cambridge.org",
+        "merriam-webster.com",
+        "dictionary.com",
+        "thesaurus.com",
+        "collinsdictionary.com",
+        "vocabulary.com",
+        "etymonline.com",
+    ]
+
+    trusted_domains = [
+        "geeksforgeeks.org",
+        "w3schools.com",
+        "tutorialspoint.com",
+        "javatpoint.com",
+        "programiz.com",
+        "freecodecamp.org",
+        "developer.mozilla.org",
+        "docs.python.org",
+        "wikipedia.org",
+        "medium.com",
+        "stackoverflow.com",
+        "youtube.com",
+        "towardsdatascience.com",
+        "cisco.com",
+        "ibm.com",
+        "nist.gov",
+    ]
+
+    # Build guaranteed fallback links using Google search (always works)
+    topic_query = topic.replace(' ', '+')
+    question_query = (question_text or topic).replace(' ', '+')
+    guaranteed_links = [
+        {
+            "title": f"{topic} - GeeksforGeeks",
+            "url": f"https://www.google.com/search?q={topic_query}+site%3Ageeksforgeeks.org",
+            "description": f"Click to find articles about {topic} on GeeksforGeeks."
+        },
+        {
+            "title": f"Search: {question_text[:60] if question_text else topic}",
+            "url": f"https://www.google.com/search?q={question_query}",
+            "description": f"Click to search for more information about this topic."
+        }
+    ]
+
+    results = []
+
     try:
         from ddgs import DDGS
 
-        results = []
+        search_query = f"{topic} computer science tutorial"
 
         with DDGS() as ddgs:
             search_results = list(ddgs.text(
-                f"{topic} tutorial",
+                search_query,
                 region="us-en",
                 safesearch="on",
-                max_results=10
+                max_results=15
             ))
-
-        trusted_domains = [
-            "geeksforgeeks.org",
-            "w3schools.com",
-            "tutorialspoint.com",
-            "javatpoint.com",
-            "programiz.com",
-            "freecodecamp.org",
-            "developer.mozilla.org",
-            "docs.python.org",
-            "wikipedia.org",
-            "medium.com",
-            "stackoverflow.com",
-            "youtube.com",
-            "towardsdatascience.com"
-        ]
 
         for r in search_results:
             url = r.get("href", "")
+            if any(blocked in url for blocked in blocked_domains):
+                continue
             if any(domain in url for domain in trusted_domains):
                 results.append({
                     "title": r.get("title", "Learning Resource"),
                     "url": url,
                     "description": r.get("body", "")[:120] + "..."
                 })
-
-        if not results:
-            with DDGS() as ddgs:
-                specific_results = list(ddgs.text(
-                    f"site:geeksforgeeks.org {topic}",
-                    region="us-en",
-                    max_results=3
-                ))
-            for r in specific_results:
-                results.append({
-                    "title": r.get("title", "Learning Resource"),
-                    "url": r.get("href", ""),
-                    "description": r.get("body", "")[:120] + "..."
-                })
-
-        return results[:2]
+            if len(results) >= 2:
+                break
 
     except Exception as e:
         print(f"Search error: {e}")
-        return [
-            {
-                "title": f"Search Results: {topic}",
-                "url": f"https://www.google.com/search?q=site:geeksforgeeks.org+{topic.replace(' ', '+')}",
-                "description": "Click here to search for reliable tutorials on this topic."
-            }
-        ]
+
+    # Always pad to 2 results using guaranteed Google links
+    for gl in guaranteed_links:
+        if len(results) >= 2:
+            break
+        results.append(gl)
+
+    return results[:2]
 
 def save_recommendations_to_db(answer_attempt_id: str, recommendations: list):
     """
@@ -251,7 +272,7 @@ def generate_rag_feedback(
 
         # Step 4: Search web
         print("RAG Step 4: Searching web for resources...")
-        recommendations = search_web_resources(topic)
+        recommendations = search_web_resources(topic, question_text)
         print(f"   Found {len(recommendations)} resources!")
 
         # Step 5: Save to DB if answer_attempt_id provided

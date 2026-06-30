@@ -120,9 +120,9 @@ def save_quiz_to_db(
         "status": "active"
     }).execute()
 
-    # Save each question
-    for q in questions:
-        supabase.table("questions").insert({
+    # Save all questions in a single batch
+    questions_data = [
+        {
             "quiz_id": quiz_id,
             "question_text": q["question_text"],
             "option_a": q["option_a"],
@@ -130,7 +130,11 @@ def save_quiz_to_db(
             "option_c": q["option_c"],
             "option_d": q["option_d"],
             "correct_answer": q["correct_answer"].upper()
-        }).execute()
+        }
+        for q in questions
+    ]
+    if questions_data:
+        supabase.table("questions").insert(questions_data).execute()
 
     return quiz_id
 

@@ -118,19 +118,12 @@ def get_current_user(token: str):
         if not user_id:
             return None
 
-        # Use fresh client to avoid disconnection
-        from app.core.database import get_fresh_client
-        fresh_client = get_fresh_client()
-        
-        result = fresh_client.table("users")\
-            .select("*")\
-            .eq("id", user_id)\
-            .execute()
-
-        if not result.data:
-            return None
-
-        return result.data[0]
+        # Extract info directly from token without DB call
+        return {
+            "id": user_id,
+            "email": payload.get("email"),
+            "role": payload.get("role")
+        }
 
     except JWTError:
         return None
